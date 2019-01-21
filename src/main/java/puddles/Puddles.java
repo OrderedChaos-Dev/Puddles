@@ -56,6 +56,7 @@ public class Puddles
         logger.info("splish spash you have puddles installed");
         puddle = new BlockPuddle().setUnlocalizedName("puddle").setRegistryName(new ResourceLocation(MODID, "puddle"));
         MinecraftForge.EVENT_BUS.register(this);
+        MinecraftForge.EVENT_BUS.register(new PuddlesConfig.ConfigEventHandler());
     }
     
 	@SubscribeEvent
@@ -105,7 +106,7 @@ public class Puddles
 						
 						if(this.canSpawnPuddle(world, puddlePos))
 						{
-							if(random.nextInt(9) == 0)
+							if(random.nextInt(100) < PuddlesConfig.puddleRate)
 							{
 								world.setBlockState(puddlePos.up(), puddle.getDefaultState(), 2);
 							}
