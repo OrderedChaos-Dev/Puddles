@@ -7,10 +7,19 @@ import org.apache.logging.log4j.Logger;
 
 import net.minecraft.block.Block;
 import net.minecraft.client.renderer.block.model.ModelResourceLocation;
+import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.init.Items;
+import net.minecraft.init.PotionTypes;
+import net.minecraft.init.SoundEvents;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemBlock;
+import net.minecraft.item.ItemHoe;
+import net.minecraft.item.ItemSpade;
+import net.minecraft.item.ItemStack;
+import net.minecraft.potion.PotionUtils;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.SoundCategory;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.World;
@@ -22,6 +31,7 @@ import net.minecraftforge.client.model.ModelLoader;
 import net.minecraftforge.common.DimensionManager;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.RegistryEvent;
+import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.Mod.EventHandler;
 import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
@@ -44,7 +54,7 @@ public class Puddles
     {
         logger = event.getModLog();
         logger.info("splish spash you have puddles installed");
-        puddle = new BlockPuddle();
+        puddle = new BlockPuddle().setUnlocalizedName("puddle").setRegistryName(new ResourceLocation(MODID, "puddle"));
         MinecraftForge.EVENT_BUS.register(this);
     }
     
@@ -58,7 +68,7 @@ public class Puddles
 	public void registerItems(RegistryEvent.Register<Item> event)
 	{
 		ItemBlock item = new ItemBlock(puddle);
-		item.setRegistryName(new ResourceLocation(MODID, "ward"));
+		item.setRegistryName(new ResourceLocation(MODID, "puddle"));
 		event.getRegistry().register(item);
 	}
 	
@@ -132,5 +142,48 @@ public class Puddles
 		}
 		
 		return false;
+	}
+	
+	@SubscribeEvent
+	public void puddleInteract(PlayerInteractEvent.RightClickBlock event)
+	{
+		ItemStack stack = event.getItemStack();
+		World world = event.getWorld();
+		BlockPos pos = event.getPos().up();
+		EntityPlayer player = event.getEntityPlayer();
+		if(world.getBlockState(pos).getBlock() == Puddles.puddle)
+		{
+			if(stack.getItem() == Items.GLASS_BOTTLE)
+			{
+				if(event.getFace() == EnumFacing.UP)
+				{
+					if(!world.isRemote)
+					{
+						stack.shrink(1);
+		                if (!player.inventory.addItemStackToInventory(PotionUtils.addPotionToItemStack(new ItemStack(Items.POTIONITEM), PotionTypes.WATER)))
+		                {
+		                    player.dropItem(PotionUtils.addPotionToItemStack(new ItemStack(Items.POTIONITEM), PotionTypes.WATER), false);
+		                }
+						world.setBlockToAir(pos);
+					}
+					else
+					{
+						world.playSound(player, player.posX, player.posY, player.posZ, SoundEvents.ITEM_BOTTLE_FILL, SoundCategory.NEUTRAL, 1.0F, 1.0F);
+					}
+				}
+			}
+			if(stack.getItem() instanceof ItemHoe)
+			{
+				world.setBlockToAir(pos);
+				ItemHoe hoe = (ItemHoe)stack.getItem();
+				hoe.onItemUse(player, world, pos.down(), event.getHand(), event.getFace(), 0, 0, 0);
+			}
+			if(stack.getItem() instanceof ItemSpade)
+			{
+				world.setBlockToAir(pos);
+				ItemSpade shovel = (ItemSpade)stack.getItem();
+				shovel.onItemUse(player, world, pos.down(), event.getHand(), event.getFace(), 0, 0, 0);
+			}
+		}
 	}
 }

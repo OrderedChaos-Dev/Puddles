@@ -11,6 +11,8 @@ import net.minecraft.util.BlockRenderLayer;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.RayTraceResult;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
 import net.minecraftforge.fml.relauncher.Side;
@@ -24,6 +26,13 @@ public class BlockPuddle extends Block
 		this.setBlockUnbreakable();
 		this.setTickRandomly(true);
 	}
+
+	@Override
+    @Nullable
+    public RayTraceResult collisionRayTrace(IBlockState blockState, World worldIn, BlockPos pos, Vec3d start, Vec3d end)
+    {
+        return null;
+    }
 	
 	@Override
     public void updateTick(World world, BlockPos pos, IBlockState state, Random rand)
