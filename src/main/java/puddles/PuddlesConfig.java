@@ -22,6 +22,12 @@ public class PuddlesConfig
 	})
 	public static int puddleRate = 15;
 	
+	@Name("Can Use Glass Bottle")
+	@Comment({
+		"Toggles filling glass bottles with puddle water"
+	})
+	public static boolean canUseGlassBottle = true;
+	
 	@Mod.EventBusSubscriber
 	public static class ConfigEventHandler
 	{

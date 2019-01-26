@@ -7,6 +7,7 @@ import org.apache.logging.log4j.Logger;
 
 import net.minecraft.block.Block;
 import net.minecraft.client.renderer.block.model.ModelResourceLocation;
+import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Items;
 import net.minecraft.init.PotionTypes;
@@ -18,10 +19,12 @@ import net.minecraft.item.ItemSpade;
 import net.minecraft.item.ItemStack;
 import net.minecraft.potion.PotionUtils;
 import net.minecraft.util.EnumFacing;
+import net.minecraft.util.EnumParticleTypes;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.SoundCategory;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
+import net.minecraft.util.math.MathHelper;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldServer;
 import net.minecraft.world.biome.Biome;
@@ -31,6 +34,7 @@ import net.minecraftforge.client.model.ModelLoader;
 import net.minecraftforge.common.DimensionManager;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.RegistryEvent;
+import net.minecraftforge.event.entity.living.LivingFallEvent;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.Mod.EventHandler;
@@ -154,7 +158,7 @@ public class Puddles
 		EntityPlayer player = event.getEntityPlayer();
 		if(world.getBlockState(pos).getBlock() == Puddles.puddle)
 		{
-			if(stack.getItem() == Items.GLASS_BOTTLE)
+			if(stack.getItem() == Items.GLASS_BOTTLE && PuddlesConfig.canUseGlassBottle)
 			{
 				if(event.getFace() == EnumFacing.UP)
 				{
@@ -185,6 +189,43 @@ public class Puddles
 				ItemSpade shovel = (ItemSpade)stack.getItem();
 				shovel.onItemUse(player, world, pos.down(), event.getHand(), event.getFace(), 0, 0, 0);
 			}
+		}
+	}
+	
+	@SubscribeEvent
+	public void makeBigSplash(LivingFallEvent event)
+	{
+		EntityLivingBase entity = event.getEntityLiving();
+		BlockPos pos = entity.getPosition();
+		World world = entity.getEntityWorld();
+
+		if(!world.isRemote)
+		{
+			if(world.getBlockState(pos).getBlock() == Puddles.puddle)
+			{
+				float distance = event.getDistance();
+				if(distance < 3.0F)
+				{
+	                ((WorldServer)world).spawnParticle(EnumParticleTypes.BLOCK_DUST, entity.posX, entity.posY, entity.posZ, 15, 0.0D, 0.0D, 0.0D, 0.13D, Block.getStateId(Puddles.puddle.getDefaultState()));
+	                ((WorldServer)world).spawnParticle(EnumParticleTypes.WATER_SPLASH, entity.posX, entity.posY, entity.posZ, 15, 0.0D, 0.0D, 0.0D, 0.13D, Block.getStateId(Puddles.puddle.getDefaultState()));
+				}
+				else
+				{
+		            float f = (float)MathHelper.ceil(distance - 3.0F);
+
+	                double d0 = Math.min((double)(0.2F + f / 15.0F), 2.5D);
+	                int i = (int)(200.0D * d0);
+	                
+	                for(int a = 0; a < 20; a++)
+	                {
+	                	double x = 0.8 * (world.rand.nextDouble() - world.rand.nextDouble());
+	                	double z = 0.8 * (world.rand.nextDouble() - world.rand.nextDouble());
+		                ((WorldServer)world).spawnParticle(EnumParticleTypes.WATER_SPLASH, entity.posX + x, entity.posY, entity.posZ + z, i / 2, 0.0D, 0.0D, 0.0D, 0.25D);	
+	                }
+	                ((WorldServer)world).spawnParticle(EnumParticleTypes.BLOCK_DUST, entity.posX, entity.posY, entity.posZ, i, 0.0D, 0.0D, 0.0D, 0.4D, Block.getStateId(Puddles.puddle.getDefaultState()));
+	                world.playSound(null, pos, SoundEvents.ENTITY_PLAYER_SPLASH, SoundCategory.NEUTRAL, 1.0F, 1.0F);
+				}	
+			}	
 		}
 	}
 }
