@@ -12,6 +12,7 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Items;
 import net.minecraft.init.PotionTypes;
 import net.minecraft.init.SoundEvents;
+import net.minecraft.inventory.EntityEquipmentSlot;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemBlock;
 import net.minecraft.item.ItemHoe;
@@ -34,6 +35,7 @@ import net.minecraftforge.client.model.ModelLoader;
 import net.minecraftforge.common.DimensionManager;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.RegistryEvent;
+import net.minecraftforge.event.entity.living.LivingEvent.LivingUpdateEvent;
 import net.minecraftforge.event.entity.living.LivingFallEvent;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 import net.minecraftforge.fml.common.Mod;
@@ -47,11 +49,12 @@ public class Puddles
 {
     public static final String MODID = "puddles";
     public static final String NAME = "Puddles";
-    public static final String VERSION = "1.0";
+    public static final String VERSION = "1.1";
 
     public static Logger logger;
     
     public static Block puddle;
+    public static Item socks, wet_socks;
 
     @EventHandler
     public void preInit(FMLPreInitializationEvent event)
@@ -72,16 +75,29 @@ public class Puddles
 	@SubscribeEvent
 	public void registerItems(RegistryEvent.Register<Item> event)
 	{
-		ItemBlock item = new ItemBlock(puddle);
-		item.setRegistryName(new ResourceLocation(MODID, "puddle"));
-		event.getRegistry().register(item);
+		ItemBlock puddle_item = new ItemBlock(puddle);
+		puddle_item.setRegistryName(new ResourceLocation(MODID, "puddle"));
+		event.getRegistry().register(puddle_item);
+		
+		socks = new ItemSocks(false);
+		socks.setRegistryName(new ResourceLocation(MODID, "socks"));
+		socks.setUnlocalizedName("socks");
+		event.getRegistry().register(socks);
+		
+		wet_socks = new ItemSocks(true);
+		wet_socks.setUnlocalizedName("wet_socks");
+		wet_socks.setRegistryName(new ResourceLocation(MODID, "wet_socks"));
+		event.getRegistry().register(wet_socks);
 	}
 	
 	@SubscribeEvent
 	public void registerItemModels(ModelRegistryEvent event)
 	{
-		Item item = Item.getItemFromBlock(puddle);
-		ModelLoader.setCustomModelResourceLocation(item, 0, new ModelResourceLocation(item.getRegistryName(), "inventory"));
+		Item puddle_item = Item.getItemFromBlock(puddle);
+		ModelLoader.setCustomModelResourceLocation(puddle_item, 0, new ModelResourceLocation(puddle_item.getRegistryName(), "inventory"));
+		
+		ModelLoader.setCustomModelResourceLocation(socks, 0, new ModelResourceLocation(socks.getRegistryName(), "inventory"));
+		ModelLoader.setCustomModelResourceLocation(wet_socks, 0, new ModelResourceLocation(wet_socks.getRegistryName(), "inventory"));
 	}
 	
 	@SubscribeEvent
@@ -226,6 +242,37 @@ public class Puddles
 	                world.playSound(null, pos, SoundEvents.ENTITY_PLAYER_SPLASH, SoundCategory.NEUTRAL, 1.0F, 1.0F);
 				}	
 			}	
+		}
+	}
+	
+	//WET SOCKS
+	@SubscribeEvent
+	public void makeSocksWet(LivingUpdateEvent event)
+	{
+		if(event.getEntityLiving() instanceof EntityPlayer)
+		{
+			EntityPlayer player = (EntityPlayer)event.getEntityLiving();
+			BlockPos pos = player.getPosition();
+			World world = player.getEntityWorld();
+			if(world.getBlockState(pos).getBlock() == Puddles.puddle)
+			{
+				Iterator<ItemStack> armor = player.getArmorInventoryList().iterator();
+				ItemStack socks = null;
+				while(armor.hasNext())
+				{
+					ItemStack temp = armor.next();
+					if(temp.getItem() == Puddles.socks)
+					{
+						socks = temp;
+						break;
+					}
+				}
+
+				if(socks != null)
+				{
+					player.setItemStackToSlot(EntityEquipmentSlot.FEET, new ItemStack(Puddles.wet_socks));
+				}
+			}
 		}
 	}
 }
