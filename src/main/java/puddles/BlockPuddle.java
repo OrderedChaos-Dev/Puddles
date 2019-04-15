@@ -119,4 +119,10 @@ public class BlockPuddle extends Block
     {
 		return null;
     }
+	
+	@Override
+    public int quantityDropped(Random random)
+    {
+        return 0;
+    }
 }
