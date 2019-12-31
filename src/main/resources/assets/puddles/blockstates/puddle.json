@@ -1,6 +1,5 @@
 {
-	"variants":
-	{
-		"normal": { "model": "puddles:puddle"}
+	"variants": {
+		"": { "model": "puddles:block/puddle"}
 	}
 }

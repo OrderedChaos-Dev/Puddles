@@ -1,0 +1,27 @@
+modLoader="javafml"
+loaderVersion="[30,)"
+issueTrackerURL="https://github.com/mc-jt9/Puddles/issues"
+
+[[mods]]
+	modId="puddles"
+	version="${version}"
+	displayName="Puddles"
+	displayURL="https://www.orderedchaos.dev/"
+	logoFile="puddles.png"
+	authors="solis_nova"
+	description='''
+	Adds puddles when it rains!
+	'''
+[[dependencies.projectvibrantjourneys]]
+    modId="forge"
+    mandatory=true
+    versionRange="[30,)"
+    ordering="NONE"
+    side="BOTH"
+
+[[dependencies.projectvibrantjourneys]]
+    modId="minecraft"
+    mandatory=true
+    versionRange="[1.15.1]"
+    ordering="NONE"
+    side="BOTH"

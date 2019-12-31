@@ -1,7 +1,6 @@
 {
     "pack": {
-        "description": "whew",
-        "pack_format": 3,
-        "_comment": "reee"
+        "description": "Puddles resources",
+        "pack_format": 5
     }
 }
