@@ -45,8 +45,10 @@ import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.entity.living.LivingFallEvent;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.ModLoadingContext;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
+import net.minecraftforge.fml.config.ModConfig;
 import net.minecraftforge.fml.event.lifecycle.FMLLoadCompleteEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import net.minecraftforge.fml.loading.FMLEnvironment;
@@ -62,6 +64,7 @@ public class Puddles {
 	public static Block puddle;
 	
 	public Puddles() {
+		ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, PuddlesConfig.COMMON_CONFIG);
 		FMLJavaModLoadingContext.get().getModEventBus().addListener(this::loadComplete);
 		MinecraftForge.EVENT_BUS.register(this);
 	}
@@ -100,24 +103,25 @@ public class Puddles {
 			ServerWorld world = Minecraft.getInstance().getIntegratedServer().getWorld(DimensionType.OVERWORLD);
 			if(world.getGameTime() % 20 == 0) {
 				Class<?> clazz = world.getChunkProvider().chunkManager.getClass();
-				Method meth = clazz.getDeclaredMethod("func_223491_f");
-				meth.setAccessible(true);
-				Iterable<ChunkHolder> iterator = (Iterable<ChunkHolder>) meth.invoke(world.getChunkProvider().chunkManager);
+				Method getLoadedChunks = clazz.getDeclaredMethod("func_223491_f");
+				getLoadedChunks.setAccessible(true);
+				Iterable<ChunkHolder> iterator = (Iterable<ChunkHolder>) getLoadedChunks.invoke(world.getChunkProvider().chunkManager);
 				iterator.forEach((chunk) -> {
 		            Optional<Chunk> optional = chunk.func_219297_b().getNow(ChunkHolder.UNLOADED_CHUNK).left();
 		            if (optional.isPresent()) {
 						ChunkPos chunkPos = chunk.getPosition();
 						Random random = world.rand;
-						int x = random.nextInt(8) - random.nextInt(8);
-						int z = random.nextInt(8) - random.nextInt(8);
-						BlockPos pos = chunkPos.getBlock(8 + x, 0, 8 + z);
+
+						int x = random.nextInt(16);
+						int z = random.nextInt(16);
+						BlockPos pos = chunkPos.getBlock(x, 0, z);
 
 						int y = world.getHeight(Type.MOTION_BLOCKING, pos.getX(), pos.getZ());
 						
 						BlockPos puddlePos = pos.add(0, y - 1, 0);
 						
 						if (canSpawnPuddle(world, puddlePos)) {
-							if ((random.nextFloat() * 1200) < 5.0F) {
+							if ((random.nextFloat() * 1200) <  PuddlesConfig.puddleRate.get()) {
 								world.setBlockState(puddlePos.up(), puddle.getDefaultState(), 2);
 								System.out.println(puddlePos.up().toString());
 							}

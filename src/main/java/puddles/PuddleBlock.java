@@ -49,11 +49,11 @@ public class PuddleBlock extends Block {
 	@Override
 	public void func_225534_a_(BlockState state, ServerWorld world, BlockPos pos, Random rand) {
 		if (!world.isRaining()) {
-			if (rand.nextFloat() < 0.2F) {
+			if (rand.nextFloat() * 100 < PuddlesConfig.puddleEvaporationRate.get()) {
 				world.removeBlock(pos, false);
 			}
 		} else {
-			if (rand.nextInt(500) < 20) {
+			if (rand.nextInt(500) < PuddlesConfig.puddleEvaporationRate.get()) {
 				world.removeBlock(pos, false);
 			}
 		}
