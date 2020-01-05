@@ -126,7 +126,7 @@ public class Puddles {
 						if (canSpawnPuddle(world, puddlePos)) {
 							if ((random.nextFloat() * 1200) <  PuddlesConfig.puddleRate.get()) {
 								world.setBlockState(puddlePos.up(), puddle.getDefaultState(), 2);
-								System.out.println(puddlePos.up().toString());
+//								System.out.println(puddlePos.up().toString());
 							}
 						}
 		            }
