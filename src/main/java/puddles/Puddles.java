@@ -52,6 +52,7 @@ import net.minecraftforge.fml.config.ModConfig;
 import net.minecraftforge.fml.event.lifecycle.FMLLoadCompleteEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import net.minecraftforge.fml.loading.FMLEnvironment;
+import net.minecraftforge.fml.loading.FMLPaths;
 import net.minecraftforge.registries.ForgeRegistries;
 
 @Mod(Puddles.MOD_ID)
@@ -67,6 +68,8 @@ public class Puddles {
 		ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, PuddlesConfig.COMMON_CONFIG);
 		FMLJavaModLoadingContext.get().getModEventBus().addListener(this::loadComplete);
 		MinecraftForge.EVENT_BUS.register(this);
+		
+		PuddlesConfig.loadConfig(PuddlesConfig.COMMON_CONFIG, FMLPaths.CONFIGDIR.get().resolve("puddles-common.toml"));
 	}
 	
 	@SubscribeEvent
@@ -143,6 +146,9 @@ public class Puddles {
 			return false;
 		
 		Biome biome = world.func_226691_t_(pos);
+		if(PuddlesConfig.biomeBlacklist.get().contains(biome.getRegistryName().toString()))
+			return false;
+		
 		if (!biome.doesSnowGenerate(world, pos)) {
 			for (int y = pos.getY() + 1; y < world.getActualHeight(); y++) {
 				BlockPos up = new BlockPos(pos.getX(), y, pos.getZ());
