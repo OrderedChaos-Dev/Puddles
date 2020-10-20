@@ -32,13 +32,13 @@ import net.minecraft.util.math.ChunkPos;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.world.World;
 import net.minecraft.world.biome.Biome;
+import net.minecraft.world.biome.Biome.RainType;
 import net.minecraft.world.biome.BiomeColors;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.dimension.DimensionType;
 import net.minecraft.world.gen.Heightmap.Type;
 import net.minecraft.world.server.ChunkHolder;
 import net.minecraft.world.server.ServerWorld;
-import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.RegistryEvent;
 import net.minecraftforge.event.TickEvent;
@@ -49,10 +49,10 @@ import net.minecraftforge.fml.ModLoadingContext;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.Mod.EventBusSubscriber;
 import net.minecraftforge.fml.config.ModConfig;
-import net.minecraftforge.fml.event.lifecycle.FMLLoadCompleteEvent;
+import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
-import net.minecraftforge.fml.loading.FMLEnvironment;
 import net.minecraftforge.fml.loading.FMLPaths;
+import net.minecraftforge.fml.server.ServerLifecycleHooks;
 import net.minecraftforge.registries.ForgeRegistries;
 
 @Mod(Puddles.MOD_ID)
@@ -66,7 +66,7 @@ public class Puddles {
 	
 	public Puddles() {
 		ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, PuddlesConfig.COMMON_CONFIG);
-		FMLJavaModLoadingContext.get().getModEventBus().addListener(this::loadComplete);
+		FMLJavaModLoadingContext.get().getModEventBus().addListener(this::clientSetup);
 		MinecraftForge.EVENT_BUS.register(this);
 		
 		PuddlesConfig.loadConfig(PuddlesConfig.COMMON_CONFIG, FMLPaths.CONFIGDIR.get().resolve("puddles-common.toml"));
@@ -83,19 +83,17 @@ public class Puddles {
 		ForgeRegistries.ITEMS.register(item);
 		
 		LOGGER.info("Loaded puddles.");
-		
-		if(FMLEnvironment.dist == Dist.CLIENT) {
-			RenderTypeLookup.setRenderLayer(puddle, RenderType.func_228641_d_());
-		}
 	}
 	
-	private void loadComplete(FMLLoadCompleteEvent event) {
+	private void clientSetup(FMLClientSetupEvent event) {
+		RenderTypeLookup.setRenderLayer(puddle, RenderType.getTranslucent());
+		
 		BlockColors blockColors = Minecraft.getInstance().getBlockColors();
 		ItemColors itemColors = Minecraft.getInstance().getItemColors();
 		
 		//4159204 is the forest water color
 		blockColors.register((state, world, pos, tintIndex) -> (world != null && pos != null)
-				? BiomeColors.func_228363_c_(world, pos) : 4159204, puddle);
+				? BiomeColors.getWaterColor(world, pos) : 4159204, puddle);
 		
 		itemColors.register((itemstack, tintIndex) -> 4159204, puddle);
 	}
@@ -103,14 +101,14 @@ public class Puddles {
 	@SubscribeEvent
 	public void placePuddles(TickEvent.ServerTickEvent event) {
 		try {
-			ServerWorld world = Minecraft.getInstance().getIntegratedServer().getWorld(DimensionType.OVERWORLD);
+			ServerWorld world = ServerLifecycleHooks.getCurrentServer().getWorld(DimensionType.OVERWORLD);
 			if(world.getGameTime() % 20 == 0) {
 				Class<?> clazz = world.getChunkProvider().chunkManager.getClass();
-				Method getLoadedChunks = clazz.getDeclaredMethod("func_223491_f");
+				Method getLoadedChunks = clazz.getDeclaredMethod("getLoadedChunksIterable");
 				getLoadedChunks.setAccessible(true);
 				Iterable<ChunkHolder> iterator = (Iterable<ChunkHolder>) getLoadedChunks.invoke(world.getChunkProvider().chunkManager);
 				iterator.forEach((chunk) -> {
-		            Optional<Chunk> optional = chunk.func_219297_b().getNow(ChunkHolder.UNLOADED_CHUNK).left();
+		            Optional<Chunk> optional = chunk.getEntityTickingFuture().getNow(ChunkHolder.UNLOADED_CHUNK).left();
 		            if (optional.isPresent()) {
 						ChunkPos chunkPos = chunk.getPosition();
 						Random random = world.rand;
@@ -145,9 +143,12 @@ public class Puddles {
 		if(!world.isRaining())
 			return false;
 		
-		Biome biome = world.func_226691_t_(pos);
+		Biome biome = world.getBiome(pos);
 		if(PuddlesConfig.biomeBlacklist.get().contains(biome.getRegistryName().toString()))
 			return false;
+		if(biome.getPrecipitation() == RainType.NONE) {
+			return false;
+		}
 		
 		if (!biome.doesSnowGenerate(world, pos)) {
 			for (int y = pos.getY() + 1; y < world.getActualHeight(); y++) {
@@ -178,7 +179,7 @@ public class Puddles {
 		                }
 						world.removeBlock(pos, false);
 					} else {
-						world.playSound(player, player.func_226277_ct_(), player.func_226278_cu_(), player.func_226281_cx_(), SoundEvents.ITEM_BOTTLE_FILL, SoundCategory.NEUTRAL, 1.0F, 1.0F);
+						world.playSound(player, player.getPosX(), player.getPosY(), player.getPosZ(), SoundEvents.ITEM_BOTTLE_FILL, SoundCategory.NEUTRAL, 1.0F, 1.0F);
 					}
 				}
 			}
@@ -195,7 +196,7 @@ public class Puddles {
 			if (world.getBlockState(pos).getBlock() == Puddles.puddle) {
 				float distance = event.getDistance();
 				if(distance < 3.0F)
-					((ServerWorld)world).spawnParticle(ParticleTypes.SPLASH, entity.func_226277_ct_(), entity.func_226278_cu_(), entity.func_226281_cx_(), 15, 0.0D, 0.0D, 0.0D, 0.13D);
+					((ServerWorld)world).spawnParticle(ParticleTypes.SPLASH, entity.getPosX(), entity.getPosY(), entity.getPosZ(), 15, 0.0D, 0.0D, 0.0D, 0.13D);
 				else
 				{
 		            float f = (float)MathHelper.ceil(distance - 3.0F);
@@ -206,11 +207,12 @@ public class Puddles {
 					for (int a = 0; a < 20; a++) {
 	                	double x = 0.8 * (world.rand.nextDouble() - world.rand.nextDouble());
 	                	double z = 0.8 * (world.rand.nextDouble() - world.rand.nextDouble());
-		                ((ServerWorld)world).spawnParticle(ParticleTypes.SPLASH, entity.func_226277_ct_() + x, entity.func_226278_cu_(), entity.func_226281_cx_() + z, i / 2, 0.0D, 0.0D, 0.0D, 0.25D);	
+		                ((ServerWorld)world).spawnParticle(ParticleTypes.SPLASH, entity.getPosX() + x, entity.getPosY(), entity.getPosZ() + z, i / 2, 0.0D, 0.0D, 0.0D, 0.25D);	
 	                };
 	                world.playSound(null, pos, SoundEvents.ENTITY_PLAYER_SPLASH, SoundCategory.NEUTRAL, 1.0F, 1.0F);
 				}	
 			}	
 		}
 	}
+
 }

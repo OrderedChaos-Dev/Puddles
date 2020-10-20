@@ -47,7 +47,7 @@ public class PuddleBlock extends Block {
 
 	// on random tick
 	@Override
-	public void func_225534_a_(BlockState state, ServerWorld world, BlockPos pos, Random rand) {
+	public void randomTick(BlockState state, ServerWorld world, BlockPos pos, Random rand) {
 		if (!world.isRaining()) {
 			if (rand.nextFloat() * 100 < PuddlesConfig.puddleEvaporationRate.get()) {
 				world.removeBlock(pos, false);
@@ -62,6 +62,6 @@ public class PuddleBlock extends Block {
 	@Override
 	public void onEntityWalk(World world, BlockPos pos, Entity entity) {
 		if(!world.isRemote)
-			((ServerWorld) world).spawnParticle(ParticleTypes.SPLASH, entity.func_226277_ct_(), entity.func_226278_cu_(), entity.func_226281_cx_(), 15, 0.0D, 0.0D, 0.0D, 0.13D);
+			((ServerWorld) world).spawnParticle(ParticleTypes.SPLASH, entity.getPosX(), entity.getPosY(), entity.getPosZ(), 15, 0.0D, 0.0D, 0.0D, 0.13D);
 	}
 }
