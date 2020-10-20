@@ -102,33 +102,35 @@ public class Puddles {
 	public void placePuddles(TickEvent.ServerTickEvent event) {
 		try {
 			ServerWorld world = ServerLifecycleHooks.getCurrentServer().getWorld(DimensionType.OVERWORLD);
-			if(world.getGameTime() % 20 == 0) {
-				Class<?> clazz = world.getChunkProvider().chunkManager.getClass();
-				Method getLoadedChunks = clazz.getDeclaredMethod("getLoadedChunksIterable");
-				getLoadedChunks.setAccessible(true);
-				Iterable<ChunkHolder> iterator = (Iterable<ChunkHolder>) getLoadedChunks.invoke(world.getChunkProvider().chunkManager);
-				iterator.forEach((chunk) -> {
-		            Optional<Chunk> optional = chunk.getEntityTickingFuture().getNow(ChunkHolder.UNLOADED_CHUNK).left();
-		            if (optional.isPresent()) {
-						ChunkPos chunkPos = chunk.getPosition();
-						Random random = world.rand;
+			if(world.isRaining()) {
+				if(world.getGameTime() % 20 == 0) {
+					Class<?> clazz = world.getChunkProvider().chunkManager.getClass();
+					Method getLoadedChunks = clazz.getDeclaredMethod("getLoadedChunksIterable");
+					getLoadedChunks.setAccessible(true);
+					Iterable<ChunkHolder> iterator = (Iterable<ChunkHolder>) getLoadedChunks.invoke(world.getChunkProvider().chunkManager);
+					iterator.forEach((chunk) -> {
+			            Optional<Chunk> optional = chunk.getEntityTickingFuture().getNow(ChunkHolder.UNLOADED_CHUNK).left();
+			            if (optional.isPresent()) {
+							ChunkPos chunkPos = chunk.getPosition();
+							Random random = world.rand;
 
-						int x = random.nextInt(16);
-						int z = random.nextInt(16);
-						BlockPos pos = chunkPos.getBlock(x, 0, z);
+							int x = random.nextInt(16);
+							int z = random.nextInt(16);
+							BlockPos pos = chunkPos.getBlock(x, 0, z);
 
-						int y = world.getHeight(Type.MOTION_BLOCKING, pos.getX(), pos.getZ());
-						
-						BlockPos puddlePos = pos.add(0, y - 1, 0);
-						
-						if (canSpawnPuddle(world, puddlePos)) {
-							if ((random.nextFloat() * 1200) <  PuddlesConfig.puddleRate.get()) {
-								world.setBlockState(puddlePos.up(), puddle.getDefaultState(), 2);
-//								System.out.println(puddlePos.up().toString());
+							int y = world.getHeight(Type.MOTION_BLOCKING, pos.getX(), pos.getZ());
+							
+							BlockPos puddlePos = pos.add(0, y - 1, 0);
+							
+							if (canSpawnPuddle(world, puddlePos)) {
+								if ((random.nextFloat() * 1200) <  PuddlesConfig.puddleRate.get()) {
+									world.setBlockState(puddlePos.up(), puddle.getDefaultState(), 2);
+//									System.out.println(puddlePos.up().toString());
+								}
 							}
-						}
-		            }
-		         });
+			            }
+			         });
+				}
 			}
 		} catch(Exception e) {
 			//lol
