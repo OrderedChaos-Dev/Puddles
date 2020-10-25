@@ -102,7 +102,7 @@ public class Puddles {
 	public void placePuddles(TickEvent.ServerTickEvent event) {
 		try {
 			ServerWorld world = ServerLifecycleHooks.getCurrentServer().getWorld(DimensionType.OVERWORLD);
-			if(world.isRaining()) {
+			if(world.isRaining() && world.getDimension().getType() == DimensionType.OVERWORLD) {
 				if(world.getGameTime() % 20 == 0) {
 					Class<?> clazz = world.getChunkProvider().chunkManager.getClass();
 					Method getLoadedChunks = clazz.getDeclaredMethod("getLoadedChunksIterable");
