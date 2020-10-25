@@ -22,7 +22,7 @@ public class PuddlesConfig {
 	static {
 		COMMON_BUILDER.comment("Puddles Settings").push("Puddles");
 		puddleRate = COMMON_BUILDER.comment("How fast puddles generate - (0-5 is reasonable) Default: 5").defineInRange("puddleRate", 5, 0, 1200);
-		puddleEvaporationRate = COMMON_BUILDER.comment("How fast puddles evaporate. Default: 30").defineInRange("puddleEvaporationRate", 30, 0, 100);
+		puddleEvaporationRate = COMMON_BUILDER.comment("How fast puddles evaporate. Default: 40").defineInRange("puddleEvaporationRate", 50, 0, 100);
 		biomeBlacklist = COMMON_BUILDER.comment("Biome blacklist").define("biomeBlacklist", new ArrayList<String>());
 		COMMON_BUILDER.pop();
 		
