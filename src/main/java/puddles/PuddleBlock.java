@@ -19,8 +19,8 @@ import net.minecraft.world.server.ServerWorld;
 public class PuddleBlock extends Block {
 
 	public PuddleBlock() {
-		super(Block.Properties.create(Material.WATER).doesNotBlockMovement().hardnessAndResistance(100F).noDrops()
-				.tickRandomly());
+		super(Block.Properties.of(Material.WATER).noCollission().strength(100F).noDrops()
+				.randomTicks());
 	}
 
 	@Override
@@ -29,18 +29,13 @@ public class PuddleBlock extends Block {
 	}
 
 	@Override
-	public boolean isNormalCube(BlockState state, IBlockReader world, BlockPos pos) {
-		return false;
-	}
-
-	@Override
-	public boolean isValidPosition(BlockState state, IWorldReader world, BlockPos pos) {
-		return world.getBlockState(pos.down()).isSolid();
+	public boolean canSurvive(BlockState state, IWorldReader world, BlockPos pos) {
+		return world.getBlockState(pos.below()).isCollisionShapeFullBlock(world, pos);
 	}
 
 	@Override
 	public void neighborChanged(BlockState state, World world, BlockPos pos, Block blockIn, BlockPos fromPos, boolean isMoving) {
-		if (!isValidPosition(state, world, pos)) {
+		if (!canSurvive(state, world, pos)) {
 			world.destroyBlock(pos, false);
 		}
 	}
@@ -59,9 +54,9 @@ public class PuddleBlock extends Block {
 		}
 	}
 
-	@Override
-	public void onEntityWalk(World world, BlockPos pos, Entity entity) {
-		if(!world.isRemote)
-			((ServerWorld) world).spawnParticle(ParticleTypes.SPLASH, entity.getPosX(), entity.getPosY(), entity.getPosZ(), 15, 0.0D, 0.0D, 0.0D, 0.13D);
-	}
+//	@Override
+//	public void onEntityWalk(World world, BlockPos pos, Entity entity) {
+//		if(!world.isClientSide())
+//			((ServerWorld) world).spawnParticle(ParticleTypes.SPLASH, entity.getPosX(), entity.getPosY(), entity.getPosZ(), 15, 0.0D, 0.0D, 0.0D, 0.13D);
+//	}
 }

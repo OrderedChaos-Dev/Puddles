@@ -1,7 +1,7 @@
 modLoader="javafml"
 loaderVersion="[30,)"
 issueTrackerURL="https://github.com/mc-jt9/Puddles/issues"
-
+license="lol"
 [[mods]]
 	modId="puddles"
 	version="${version}"

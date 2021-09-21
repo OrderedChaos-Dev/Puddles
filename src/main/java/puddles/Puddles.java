@@ -35,7 +35,6 @@ import net.minecraft.world.biome.Biome;
 import net.minecraft.world.biome.Biome.RainType;
 import net.minecraft.world.biome.BiomeColors;
 import net.minecraft.world.chunk.Chunk;
-import net.minecraft.world.dimension.DimensionType;
 import net.minecraft.world.gen.Heightmap.Type;
 import net.minecraft.world.server.ChunkHolder;
 import net.minecraft.world.server.ServerWorld;
@@ -64,6 +63,8 @@ public class Puddles {
 	
 	public static Block puddle;
 	
+	private Method getLoadedChunks;
+	
 	public Puddles() {
 		ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, PuddlesConfig.COMMON_CONFIG);
 		FMLJavaModLoadingContext.get().getModEventBus().addListener(this::clientSetup);
@@ -77,7 +78,7 @@ public class Puddles {
 		puddle = new PuddleBlock().setRegistryName(new ResourceLocation(MOD_ID, "puddle"));
 		event.getRegistry().register(puddle);
 		
-		Item.Properties prop = new Item.Properties().group(ItemGroup.MISC);
+		Item.Properties prop = new Item.Properties().tab(ItemGroup.TAB_MISC);
 		BlockItem item = new BlockItem(puddle, prop);
 		item.setRegistryName(new ResourceLocation(MOD_ID, "puddle"));
 		ForgeRegistries.ITEMS.register(item);
@@ -86,14 +87,14 @@ public class Puddles {
 	}
 	
 	private void clientSetup(FMLClientSetupEvent event) {
-		RenderTypeLookup.setRenderLayer(puddle, RenderType.getTranslucent());
+		RenderTypeLookup.setRenderLayer(puddle, RenderType.translucent());
 		
 		BlockColors blockColors = Minecraft.getInstance().getBlockColors();
 		ItemColors itemColors = Minecraft.getInstance().getItemColors();
 		
 		//4159204 is the forest water color
 		blockColors.register((state, world, pos, tintIndex) -> (world != null && pos != null)
-				? BiomeColors.getWaterColor(world, pos) : 4159204, puddle);
+				? BiomeColors.getAverageWaterColor(world, pos) : 4159204, puddle);
 		
 		itemColors.register((itemstack, tintIndex) -> 4159204, puddle);
 	}
@@ -101,31 +102,33 @@ public class Puddles {
 	@SubscribeEvent
 	public void placePuddles(TickEvent.ServerTickEvent event) {
 		try {
-			ServerWorld world = ServerLifecycleHooks.getCurrentServer().getWorld(DimensionType.OVERWORLD);
-			if(world.isRaining() && world.getDimension().getType() == DimensionType.OVERWORLD) {
+			ServerWorld world = ServerLifecycleHooks.getCurrentServer().overworld();
+			if(world.isRaining()) {
 				if(world.getGameTime() % 20 == 0) {
-					Class<?> clazz = world.getChunkProvider().chunkManager.getClass();
-					Method getLoadedChunks = clazz.getDeclaredMethod("getLoadedChunksIterable");
-					getLoadedChunks.setAccessible(true);
-					Iterable<ChunkHolder> iterator = (Iterable<ChunkHolder>) getLoadedChunks.invoke(world.getChunkProvider().chunkManager);
+					if(getLoadedChunks == null) {
+						Class<?> clazz = world.getChunkSource().chunkMap.getClass();
+						getLoadedChunks = clazz.getDeclaredMethod("getChunks");
+						getLoadedChunks.setAccessible(true);
+					}
+
+					Iterable<ChunkHolder> iterator = (Iterable<ChunkHolder>) getLoadedChunks.invoke(world.getChunkSource().chunkMap);
 					iterator.forEach((chunk) -> {
-			            Optional<Chunk> optional = chunk.getEntityTickingFuture().getNow(ChunkHolder.UNLOADED_CHUNK).left();
+			            Optional<Chunk> optional = chunk.getEntityTickingChunkFuture().getNow(ChunkHolder.UNLOADED_LEVEL_CHUNK).left();
 			            if (optional.isPresent()) {
-							ChunkPos chunkPos = chunk.getPosition();
-							Random random = world.rand;
+							ChunkPos chunkPos = chunk.getPos();
+							Random random = world.getRandom();
 
 							int x = random.nextInt(16);
 							int z = random.nextInt(16);
-							BlockPos pos = chunkPos.getBlock(x, 0, z);
+							BlockPos pos = chunkPos.getWorldPosition().offset(x, 0, z);
 
 							int y = world.getHeight(Type.MOTION_BLOCKING, pos.getX(), pos.getZ());
 							
-							BlockPos puddlePos = pos.add(0, y - 1, 0);
+							BlockPos puddlePos = pos.above(y - 1);
 							
 							if (canSpawnPuddle(world, puddlePos)) {
 								if ((random.nextFloat() * 1200) <  PuddlesConfig.puddleRate.get()) {
-									world.setBlockState(puddlePos.up(), puddle.getDefaultState(), 2);
-//									System.out.println(puddlePos.up().toString());
+									world.setBlock(puddlePos.above(), puddle.defaultBlockState(), 2);
 								}
 							}
 			            }
@@ -138,9 +141,9 @@ public class Puddles {
 	}
 	
 	public boolean canSpawnPuddle(World world, BlockPos pos) {
-		if(!world.getBlockState(pos).isSolid())
+		if(!world.getBlockState(pos).isCollisionShapeFullBlock(world, pos))
 			return false;
-		if(!world.isAirBlock(pos.up()))
+		if(!world.isEmptyBlock(pos.above()))
 			return false;
 		if(!world.isRaining())
 			return false;
@@ -152,10 +155,10 @@ public class Puddles {
 			return false;
 		}
 		
-		if (!biome.doesSnowGenerate(world, pos)) {
-			for (int y = pos.getY() + 1; y < world.getActualHeight(); y++) {
+		if (!biome.shouldSnow(world, pos)) {
+			for (int y = pos.getY() + 1; y < world.getHeight(); y++) {
 				BlockPos up = new BlockPos(pos.getX(), y, pos.getZ());
-				if(!world.isAirBlock(up))
+				if(!world.isEmptyBlock(up))
 					return false;
 			}
 			return true;
@@ -168,20 +171,20 @@ public class Puddles {
 	public void puddleInteract(PlayerInteractEvent.RightClickBlock event) {
 		ItemStack stack = event.getItemStack();
 		World world = event.getWorld();
-		BlockPos pos = event.getPos().up();
+		BlockPos pos = event.getPos().above();
 		PlayerEntity player = event.getPlayer();
 		if (world.getBlockState(pos).getBlock() == puddle) {
 			if (stack.getItem() == Items.GLASS_BOTTLE) {
 				if (event.getFace() == Direction.UP) {
-					if (!world.isRemote) {
+					if (!world.isClientSide()) {
 						stack.shrink(1);
-						if (!player.inventory.addItemStackToInventory(
-								PotionUtils.addPotionToItemStack(new ItemStack(Items.POTION), Potions.WATER))) {
-		                    player.dropItem(PotionUtils.addPotionToItemStack(new ItemStack(Items.POTION), Potions.WATER), false);
+						if (!player.inventory.add(
+								PotionUtils.setPotion(new ItemStack(Items.POTION), Potions.WATER))) {
+		                    player.drop(PotionUtils.setPotion(new ItemStack(Items.POTION), Potions.WATER), false);
 		                }
 						world.removeBlock(pos, false);
 					} else {
-						world.playSound(player, player.getPosX(), player.getPosY(), player.getPosZ(), SoundEvents.ITEM_BOTTLE_FILL, SoundCategory.NEUTRAL, 1.0F, 1.0F);
+						world.playSound(player, player.getX(), player.getY(), player.getZ(), SoundEvents.BOTTLE_FILL, SoundCategory.NEUTRAL, 1.0F, 1.0F);
 					}
 				}
 			}
@@ -191,14 +194,14 @@ public class Puddles {
 	@SubscribeEvent
 	public void makeBigSplash(LivingFallEvent event) {
 		Entity entity = event.getEntity();
-		BlockPos pos = entity.getPosition();
-		World world = entity.getEntityWorld();
+		BlockPos pos = entity.blockPosition();
+		World world = entity.level;
 
-		if (!world.isRemote) {
+		if (!world.isClientSide()) {
 			if (world.getBlockState(pos).getBlock() == Puddles.puddle) {
 				float distance = event.getDistance();
 				if(distance < 3.0F)
-					((ServerWorld)world).spawnParticle(ParticleTypes.SPLASH, entity.getPosX(), entity.getPosY(), entity.getPosZ(), 15, 0.0D, 0.0D, 0.0D, 0.13D);
+					((ServerWorld)world).sendParticles(ParticleTypes.SPLASH, entity.getX(), entity.getY(), entity.getZ(), 15, 0.0D, 0.0D, 0.0D, 0.13D);
 				else
 				{
 		            float f = (float)MathHelper.ceil(distance - 3.0F);
@@ -207,11 +210,11 @@ public class Puddles {
 	                int i = (int)(200.0D * d0);
 	                
 					for (int a = 0; a < 20; a++) {
-	                	double x = 0.8 * (world.rand.nextDouble() - world.rand.nextDouble());
-	                	double z = 0.8 * (world.rand.nextDouble() - world.rand.nextDouble());
-		                ((ServerWorld)world).spawnParticle(ParticleTypes.SPLASH, entity.getPosX() + x, entity.getPosY(), entity.getPosZ() + z, i / 2, 0.0D, 0.0D, 0.0D, 0.25D);	
+	                	double x = 0.8 * (world.getRandom().nextDouble() - world.getRandom().nextDouble());
+	                	double z = 0.8 * (world.getRandom().nextDouble() - world.getRandom().nextDouble());
+		                ((ServerWorld)world).sendParticles(ParticleTypes.SPLASH, entity.getX() + x, entity.getY(), entity.getZ() + z, i / 2, 0.0D, 0.0D, 0.0D, 0.25D);	
 	                };
-	                world.playSound(null, pos, SoundEvents.ENTITY_PLAYER_SPLASH, SoundCategory.NEUTRAL, 1.0F, 1.0F);
+	                world.playSound(null, pos, SoundEvents.PLAYER_SPLASH, SoundCategory.NEUTRAL, 1.0F, 1.0F);
 				}	
 			}	
 		}
