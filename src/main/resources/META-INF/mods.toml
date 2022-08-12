@@ -1,0 +1,16 @@
+modLoader="javafml" #mandatory
+loaderVersion="[40,)" #mandatory
+license="All rights reserved"
+issueTrackerURL="https://github.com/OrderedChaos-Dev/ProjectVibrantJourneys/issues" #optional
+
+[[mods]] #mandatory
+modId="puddles" #mandatory
+version="${file.jarVersion}" #mandatory
+displayName="Puddles" #mandatory
+displayURL="https://www.ordered-chaos.dev/" #optional
+logoFile="examplemod.png" #optional
+credits="My three geckos: soup, stew, and broth" #optional
+authors="OrderedChaosDev" #optional
+description='''
+Puddles to wet your socks
+'''

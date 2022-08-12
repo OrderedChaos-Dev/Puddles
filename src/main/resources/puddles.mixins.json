@@ -1,0 +1,9 @@
+{
+	"required": true,
+	"package": "puddles.mixin",
+	"minVersion": "0.8",
+	"refmap": "puddles.refmap.json",
+	"mixins": [
+		"ServerLevelMixin"
+	]
+}
