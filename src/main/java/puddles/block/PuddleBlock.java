@@ -4,6 +4,7 @@ import java.util.Random;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
@@ -68,23 +69,29 @@ public class PuddleBlock extends Block {
 	public boolean canBeReplaced(BlockState state, BlockPlaceContext context) {
 		return true;
 	}
-	
-	@Override
-	public InteractionResult use(BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult result) {
-		return super.use(state, level, pos, player, hand, result);
-	}
 
 	@Override
 	public void randomTick(BlockState state, ServerLevel world, BlockPos pos, Random rand) {
-		if(!world.isRaining()) {
+		if(!world.isRainingAt(pos)) {
 			if(rand.nextFloat() * 100 < PuddlesConfig.puddleEvaporationRate.get()) {
 				world.removeBlock(pos, false);
 			}
 
 		} else {
+			//evaporation 10 times slower when raining
 			if(rand.nextFloat() * 10 < PuddlesConfig.puddleEvaporationRate.get()) {
 				world.removeBlock(pos, false);
 			}
+		}
+	}
+	
+	@Override
+	public void animateTick(BlockState state, Level level, BlockPos pos, Random rand) { 
+		if(level.canSeeSky(pos) && level.isRaining()) {
+			double x = rand.nextDouble();
+			double z = rand.nextDouble();
+			for(int i = 0; i < 5; i++)
+				level.addParticle(ParticleTypes.SPLASH, pos.getX() + x, pos.getY(), pos.getZ() + z, 0.0D, 0.0D, 0.0D);
 		}
 	}
 }

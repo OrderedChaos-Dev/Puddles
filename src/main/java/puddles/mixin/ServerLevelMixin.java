@@ -42,11 +42,11 @@ public abstract class ServerLevelMixin extends Level {
 		profilerfiller.push("puddles");
 		if(this.random.nextInt(32) == 0 && this.random.nextFloat() * 100 < PuddlesConfig.puddleRate.get()) {
 			ChunkPos chunkpos = levelChunk.getPos();
-			boolean flag = this.isRaining();
 			int i = chunkpos.getMinBlockX();
 			int j = chunkpos.getMinBlockZ();
 			BlockPos blockpos2 = this.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, this.getBlockRandomPos(i, 0, j, 15));
 			BlockPos blockpos3 = blockpos2.below();
+			boolean flag = this.isRainingAt(blockpos2);
 			Biome biome = this.getBiome(blockpos2).value();
 			if(!PuddlesConfig.biomeBlacklist.get().contains(biome.getRegistryName().toString())) {
 				if (this.isAreaLoaded(blockpos2, 1)) {
