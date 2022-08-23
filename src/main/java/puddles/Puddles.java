@@ -127,6 +127,9 @@ public class Puddles
     
     @SubscribeEvent
 	public void makeBigSplash(LivingFallEvent event) {
+    	if(!PuddlesConfig.allowSplashing.get())
+    		return;
+    	
 		Entity entity = event.getEntity();
 		BlockPos pos = entity.blockPosition();
 		Level level = entity.getLevel();

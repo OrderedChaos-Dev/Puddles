@@ -17,12 +17,14 @@ public class PuddlesConfig {
 	
 	public static ForgeConfigSpec.IntValue puddleRate;
 	public static ForgeConfigSpec.IntValue puddleEvaporationRate;
+	public static ForgeConfigSpec.BooleanValue allowSplashing;
 	public static ConfigValue<List<? extends String>> biomeBlacklist;
 	
 	static {
 		COMMON_BUILDER.comment("Puddles Settings").push("Puddles");
 		puddleRate = COMMON_BUILDER.comment("How fast puddles generate - (0-5 is reasonable) Default: 5 - this is about 40 times as slow as snowfall").defineInRange("puddleRate", 5, 0, 100);
 		puddleEvaporationRate = COMMON_BUILDER.comment("How fast puddles evaporate. Default: 50 - about twice as slow as snow/ice melting").defineInRange("puddleEvaporationRate", 50, 0, 100);
+		allowSplashing = COMMON_BUILDER.comment("Allow splashing when jumping on puddles").define("allowSplashing", true);
 		biomeBlacklist = COMMON_BUILDER.comment("Biome blacklist (e.g [\"minecraft:forest\",\"minecraft:plains\"])").defineList("biomeBlacklist", Collections.emptyList(), (o) -> true);
 		COMMON_BUILDER.pop();
 		
